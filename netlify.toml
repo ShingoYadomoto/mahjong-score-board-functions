@@ -1,0 +1,7 @@
+[build]
+base = "/"
+command = "make build"
+functions = "/functions"
+
+[build.environment]
+GO_VERSION = "1.18.1"
