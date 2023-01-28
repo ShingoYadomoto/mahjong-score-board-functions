@@ -37,6 +37,7 @@ func Serve() {
 	e.POST("/room", h.CreateRoomHandler)
 	e.POST("/room/:roomID", h.JoinRoomHandler)
 	e.GET("/room/in", h.CheckInRoomHandler)
+	e.POST("/room/leave", h.LeaveRoomHandler)
 	e.GET("/room", h.RoomSocketHandler)
 
 	go r.Run() // start room

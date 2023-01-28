@@ -184,6 +184,33 @@ func (h *handler) JoinRoomHandler(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }
 
+func (h *handler) LeaveRoomHandler(c echo.Context) error {
+	req := c.Request()
+
+	authCookie, err := req.Cookie("auth")
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	playerMap := objx.MustFromBase64(authCookie.Value)
+
+	delete(playerMap, "room_id")
+
+	authCookieValue := objx.New(playerMap).MustBase64()
+
+	c.SetCookie(&http.Cookie{
+		Name:     "auth",
+		Value:    authCookieValue,
+		Path:     "/",
+		SameSite: http.SameSiteNoneMode, // only dev
+		Expires:  time.Now().Add(time.Hour * 72),
+		Secure:   true,
+		HttpOnly: true,
+	})
+
+	return c.NoContent(http.StatusOK)
+}
+
 func (h *handler) CheckInRoomHandler(c echo.Context) error {
 	req := c.Request()
 
