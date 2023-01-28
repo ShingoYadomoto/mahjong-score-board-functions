@@ -64,9 +64,14 @@ const (
 	messageBufferSize = 256
 )
 
+var checkOrigin = func(r *http.Request) bool {
+	return true
+}
+
 var upgrader = &websocket.Upgrader{
 	ReadBufferSize:  socketBufferSize,
 	WriteBufferSize: messageBufferSize,
+	CheckOrigin:     checkOrigin,
 }
 
 func (r *room) ServeHTTP(w http.ResponseWriter, req *http.Request) {
