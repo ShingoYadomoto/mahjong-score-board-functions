@@ -3,7 +3,7 @@ package room
 import (
 	"time"
 
-	"github.com/ShingoYadomoto/mahjong-score-board/message"
+	"github.com/ShingoYadomoto/mahjong-score-board/deprecated/message"
 	"github.com/gorilla/websocket"
 )
 

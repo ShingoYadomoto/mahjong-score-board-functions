@@ -3,8 +3,8 @@ package room
 import (
 	"errors"
 
-	"github.com/ShingoYadomoto/mahjong-score-board/message"
-	"github.com/ShingoYadomoto/mahjong-score-board/trace"
+	"github.com/ShingoYadomoto/mahjong-score-board/deprecated/message"
+	"github.com/ShingoYadomoto/mahjong-score-board/deprecated/trace"
 )
 
 func init() {

@@ -1,240 +1,115 @@
 package server
 
 import (
-	"crypto/md5"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
-	"github.com/ShingoYadomoto/mahjong-score-board/message"
+	"github.com/ShingoYadomoto/mahjong-score-board/data"
 	"github.com/ShingoYadomoto/mahjong-score-board/room"
-	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
-	"github.com/stretchr/objx"
+	"github.com/labstack/gommon/log"
 )
-
-const (
-	socketBufferSize = 1024
-)
-
-var upgrader = &websocket.Upgrader{
-	ReadBufferSize:  socketBufferSize,
-	WriteBufferSize: room.MessageBufferSize,
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
-}
 
 type handler struct{}
 
-func (h *handler) RoomSocketHandler(c echo.Context) error {
-	req := c.Request()
-
-	socket, err := upgrader.Upgrade(c.Response(), req, nil)
+func (h *handler) getPlayer(c echo.Context) (*room.Player, error) {
+	cookie, err := c.Cookie("playerID")
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return nil, err
 	}
 
-	authCookie, err := req.Cookie("auth")
+	idInt, err := strconv.Atoi(cookie.Value)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return nil, err
 	}
 
-	playerMap := objx.MustFromBase64(authCookie.Value)
-	p := &room.Player{
-		ID:     playerMap["user_id"].(string),
-		Name:   playerMap["name"].(string),
-		RoomID: room.RoomID(playerMap["room_id"].(float64)),
-	}
-
-	rm := room.GetRoomManager()
-
-	r := rm.GetRoom(p.RoomID)
-	if r == nil {
-		return c.JSON(http.StatusNotFound, err.Error())
-	}
-
-	client := room.NewClient(socket, r, p)
-
-	r.Join <- client
-	defer func() {
-		r.Leave <- client
-	}()
-
-	go client.Write()
-	client.Read()
-
-	return nil
+	return data.GetPlayer(room.PlayerID(idInt))
 }
 
-func (h *handler) getPlayerMap(req *http.Request) map[string]interface{} {
-	authCookie, err := req.Cookie("auth")
-	if err != nil {
-		return nil
-	}
-
-	return objx.MustFromBase64(authCookie.Value)
-}
-
-func (h *handler) playerCreated(d map[string]interface{}) bool {
-	for _, field := range []string{"user_id", "name"} {
-		if _, ok := d[field]; !ok {
-			return false
-		}
-	}
-	return true
-}
-
-func (h *handler) joinedRoom(d map[string]interface{}) bool {
-	for _, field := range []string{"user_id", "name", "room_id"} {
-		if _, ok := d[field]; !ok {
-			return false
-		}
-	}
-	return true
-}
-
-func (h *handler) responseWithCookie(c echo.Context, d map[string]interface{}) error {
-	authCookieValue := objx.New(d).MustBase64()
-
+func (h *handler) setCookie(c echo.Context, p *room.Player) {
 	c.SetCookie(&http.Cookie{
-		Name:     "auth",
-		Value:    authCookieValue,
+		Name:     "playerID",
+		Value:    fmt.Sprint(p.ID),
 		Path:     "/",
 		SameSite: http.SameSiteNoneMode, // only dev
 		Expires:  time.Now().Add(time.Hour * 72),
 		Secure:   true,
 		HttpOnly: true,
 	})
-
-	return c.NoContent(http.StatusOK)
 }
 
 func (h *handler) CreatePlayerHandler(c echo.Context) error {
-	req := c.Request()
+	var rb struct {
+		Name string `json:"name"`
+	}
 
-	var p room.Player
-	if err := json.NewDecoder(req.Body).Decode(&p); err != nil {
+	if err := c.Bind(&rb); err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	m := md5.New()
-	if _, err := io.WriteString(m, strings.ToLower(p.Name)); err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
-	}
-
-	p.ID = fmt.Sprintf("%x", m.Sum(nil))
-
-	return h.responseWithCookie(c, map[string]interface{}{
-		"user_id": p.ID,
-		"name":    p.Name,
-	})
-}
-
-func (h *handler) CreateRoomHandler(c echo.Context) error {
-	var (
-		req       = c.Request()
-		playerMap = h.getPlayerMap(req)
-		rm        = room.GetRoomManager()
-	)
-
-	if !h.playerCreated(playerMap) {
-		return c.NoContent(http.StatusBadRequest)
-	}
-
-	//r, err := rm.NewRoom()
-	//if err != nil {
-	//	return c.JSON(http.StatusInternalServerError, err.Error())
-	//}
-	r := rm.GetRoom(3)
-
-	return h.responseWithCookie(c, map[string]interface{}{
-		"user_id": playerMap["user_id"],
-		"name":    playerMap["name"],
-		"room_id": r.ID,
-	})
-}
-
-func (h *handler) JoinRoomHandler(c echo.Context) error {
-	var (
-		req       = c.Request()
-		roomIDStr = c.Param("roomID")
-		playerMap = h.getPlayerMap(req)
-		rm        = room.GetRoomManager()
-	)
-
-	roomIDInt, err := strconv.Atoi(roomIDStr)
+	p, err := data.CreatePlayer(rb.Name)
 	if err != nil {
-		return c.JSON(http.StatusNotFound, err.Error())
+		log.Error(err)
+		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	if !h.playerCreated(playerMap) {
-		return c.NoContent(http.StatusBadRequest)
-	}
-
-	r := rm.GetRoom(room.RoomID(roomIDInt))
-	if r == nil {
-		return c.NoContent(http.StatusBadRequest)
-	}
-
-	return h.responseWithCookie(c, map[string]interface{}{
-		"user_id": playerMap["user_id"],
-		"name":    playerMap["name"],
-		"room_id": r.ID,
-	})
-}
-
-func (h *handler) LeaveRoomHandler(c echo.Context) error {
-	var (
-		req       = c.Request()
-		playerMap = h.getPlayerMap(req)
-	)
-
-	if !h.playerCreated(playerMap) {
-		return c.NoContent(http.StatusBadRequest)
-	}
-
-	return h.responseWithCookie(c, map[string]interface{}{
-		"user_id": playerMap["user_id"],
-		"name":    playerMap["name"],
-	})
-}
-
-func (h *handler) CheckInRoomHandler(c echo.Context) error {
-	var (
-		req       = c.Request()
-		playerMap = h.getPlayerMap(req)
-	)
-
-	if !h.joinedRoom(playerMap) {
-		return c.NoContent(http.StatusBadRequest)
-	}
+	h.setCookie(c, p)
 
 	return c.NoContent(http.StatusOK)
 }
 
-func (h *handler) NextHandler(c echo.Context) error {
-	var (
-		req       = c.Request()
-		playerMap = h.getPlayerMap(req)
-		rm        = room.GetRoomManager()
-	)
-
-	if !h.joinedRoom(playerMap) {
-		return c.NoContent(http.StatusBadRequest)
+func (h *handler) CreateRoomHandler(c echo.Context) error {
+	p, err := h.getPlayer(c)
+	if err != nil {
+		log.Error(err)
+		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	r := rm.GetRoom(room.RoomID(playerMap["room_id"].(float64)))
+	r, err := data.CreateRoom(p.ID)
+	if err != nil {
+		log.Error(err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
 
-	r.SendToClient(&message.Message{
-		Name:    playerMap["name"].(string),
-		Message: "NEXT",
-		When:    time.Now(),
-	})
+	h.setCookie(c, p)
+
+	return c.JSON(http.StatusOK, map[string]string{"id": fmt.Sprint(r.ID)})
+}
+
+func (h *handler) JoinRoomHandler(c echo.Context) error {
+	p, err := h.getPlayer(c)
+	if err != nil {
+		log.Error(err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	err = data.AddPlayerToRoom(p.ID)
+	if err != nil {
+		log.Error(err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	h.setCookie(c, p)
+
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *handler) LeaveRoomHandler(c echo.Context) error {
+	p, err := h.getPlayer(c)
+	if err != nil {
+		log.Error(err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	err = data.DeletePlayerFromRoom(p.ID)
+	if err != nil {
+		log.Error(err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	h.setCookie(c, p)
 
 	return c.NoContent(http.StatusOK)
 }
