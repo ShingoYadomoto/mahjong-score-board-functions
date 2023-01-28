@@ -28,6 +28,7 @@ func Serve() {
 	e.POST("/rooms", h.CreateRoomHandler)
 	e.POST("/rooms/:roomID/in", h.JoinRoomHandler)
 	e.POST("/rooms/:roomID/out", h.LeaveRoomHandler)
+	e.GET("/room", h.GetRoomHandler)
 
 	e.Logger.Fatal(e.Start(*addr))
 }
