@@ -70,6 +70,33 @@ func (h *handler) RoomSocketHandler(c echo.Context) error {
 	return nil
 }
 
+func (h *handler) getPlayerMap(req *http.Request) map[string]interface{} {
+	authCookie, err := req.Cookie("auth")
+	if err != nil {
+		return nil
+	}
+
+	return objx.MustFromBase64(authCookie.Value)
+}
+
+func (h *handler) playerCreated(d map[string]interface{}) bool {
+	for _, field := range []string{"user_id", "name"} {
+		if _, ok := d[field]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func (h *handler) joinedRoom(d map[string]interface{}) bool {
+	for _, field := range []string{"user_id", "name", "room_id"} {
+		if _, ok := d[field]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
 func (h *handler) responseWithCookie(c echo.Context, d map[string]interface{}) error {
 	authCookieValue := objx.New(d).MustBase64()
 
@@ -108,21 +135,15 @@ func (h *handler) CreatePlayerHandler(c echo.Context) error {
 }
 
 func (h *handler) CreateRoomHandler(c echo.Context) error {
-	req := c.Request()
+	var (
+		req       = c.Request()
+		playerMap = h.getPlayerMap(req)
+		rm        = room.GetRoomManager()
+	)
 
-	authCookie, err := req.Cookie("auth")
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+	if !h.playerCreated(playerMap) {
+		return c.NoContent(http.StatusBadRequest)
 	}
-
-	playerMap := objx.MustFromBase64(authCookie.Value)
-	for _, field := range []string{"user_id", "name"} {
-		if _, ok := playerMap[field]; !ok {
-			return c.NoContent(http.StatusBadRequest)
-		}
-	}
-
-	rm := room.GetRoomManager()
 
 	//r, err := rm.NewRoom()
 	//if err != nil {
@@ -138,22 +159,21 @@ func (h *handler) CreateRoomHandler(c echo.Context) error {
 }
 
 func (h *handler) JoinRoomHandler(c echo.Context) error {
-	req := c.Request()
+	var (
+		req       = c.Request()
+		roomIDStr = c.Param("roomID")
+		playerMap = h.getPlayerMap(req)
+		rm        = room.GetRoomManager()
+	)
 
-	roomIDStr := c.Param("roomID")
 	roomIDInt, err := strconv.Atoi(roomIDStr)
 	if err != nil {
 		return c.JSON(http.StatusNotFound, err.Error())
 	}
 
-	authCookie, err := req.Cookie("auth")
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+	if !h.playerCreated(playerMap) {
+		return c.NoContent(http.StatusBadRequest)
 	}
-
-	playerMap := objx.MustFromBase64(authCookie.Value)
-
-	rm := room.GetRoomManager()
 
 	r := rm.GetRoom(room.RoomID(roomIDInt))
 	if r == nil {
@@ -168,14 +188,14 @@ func (h *handler) JoinRoomHandler(c echo.Context) error {
 }
 
 func (h *handler) LeaveRoomHandler(c echo.Context) error {
-	req := c.Request()
+	var (
+		req       = c.Request()
+		playerMap = h.getPlayerMap(req)
+	)
 
-	authCookie, err := req.Cookie("auth")
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+	if !h.playerCreated(playerMap) {
+		return c.NoContent(http.StatusBadRequest)
 	}
-
-	playerMap := objx.MustFromBase64(authCookie.Value)
 
 	return h.responseWithCookie(c, map[string]interface{}{
 		"user_id": playerMap["user_id"],
@@ -184,18 +204,13 @@ func (h *handler) LeaveRoomHandler(c echo.Context) error {
 }
 
 func (h *handler) CheckInRoomHandler(c echo.Context) error {
-	req := c.Request()
+	var (
+		req       = c.Request()
+		playerMap = h.getPlayerMap(req)
+	)
 
-	authCookie, err := req.Cookie("auth")
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
-	}
-
-	playerMap := objx.MustFromBase64(authCookie.Value)
-	for _, field := range []string{"user_id", "name", "room_id"} {
-		if _, ok := playerMap[field]; !ok {
-			return c.NoContent(http.StatusBadRequest)
-		}
+	if !h.joinedRoom(playerMap) {
+		return c.NoContent(http.StatusBadRequest)
 	}
 
 	return c.NoContent(http.StatusOK)
