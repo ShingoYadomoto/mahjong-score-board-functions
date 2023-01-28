@@ -20,7 +20,7 @@ func CreateRoom(pid room.PlayerID) (*room.Room, error) {
 	return globalr, nil
 }
 
-func AddPlayerToRoom(pid room.PlayerID) error {
+func AddPlayerToRoom(id room.ID, pid room.PlayerID) error {
 	if len(globalr.PlayerIDs) > 4 {
 		return errors.New("exceed max member")
 	}
@@ -29,7 +29,7 @@ func AddPlayerToRoom(pid room.PlayerID) error {
 	return nil
 }
 
-func DeletePlayerFromRoom(pid room.PlayerID) error {
+func DeletePlayerFromRoom(id room.ID, pid room.PlayerID) error {
 	delete(globalr.PlayerIDs, pid)
 	return nil
 }

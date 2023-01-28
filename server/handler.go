@@ -79,13 +79,19 @@ func (h *handler) CreateRoomHandler(c echo.Context) error {
 }
 
 func (h *handler) JoinRoomHandler(c echo.Context) error {
+	roomIDStr := c.Param("roomID")
+	roomIDInt, err := strconv.Atoi(roomIDStr)
+	if err != nil {
+		return c.NoContent(http.StatusNotFound)
+	}
+
 	p, err := h.getPlayer(c)
 	if err != nil {
 		log.Error(err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	err = data.AddPlayerToRoom(p.ID)
+	err = data.AddPlayerToRoom(room.ID(roomIDInt), p.ID)
 	if err != nil {
 		log.Error(err)
 		return c.NoContent(http.StatusInternalServerError)
@@ -97,13 +103,19 @@ func (h *handler) JoinRoomHandler(c echo.Context) error {
 }
 
 func (h *handler) LeaveRoomHandler(c echo.Context) error {
+	roomIDStr := c.Param("roomID")
+	roomIDInt, err := strconv.Atoi(roomIDStr)
+	if err != nil {
+		return c.NoContent(http.StatusNotFound)
+	}
+
 	p, err := h.getPlayer(c)
 	if err != nil {
 		log.Error(err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	err = data.DeletePlayerFromRoom(p.ID)
+	err = data.DeletePlayerFromRoom(room.ID(roomIDInt), p.ID)
 	if err != nil {
 		log.Error(err)
 		return c.NoContent(http.StatusInternalServerError)
