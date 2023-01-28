@@ -2,11 +2,11 @@ package room
 
 import (
 	"io"
-	"log"
 	"net/http"
 
 	"github.com/ShingoYadomoto/mahjong-score-board/message"
 	"github.com/ShingoYadomoto/mahjong-score-board/player"
+	"github.com/labstack/echo/v4"
 	"github.com/stretchr/objx"
 
 	"github.com/ShingoYadomoto/mahjong-score-board/trace"
@@ -91,17 +91,17 @@ var upgrader = &websocket.Upgrader{
 	CheckOrigin:     checkOrigin,
 }
 
-func (r *room) SyncRoomHandler(w http.ResponseWriter, req *http.Request) {
-	socket, err := upgrader.Upgrade(w, req, nil)
+func (r *room) SyncRoomHandler(c echo.Context) error {
+	req := c.Request()
+
+	socket, err := upgrader.Upgrade(c.Response(), req, nil)
 	if err != nil {
-		log.Fatal("ServeHTTP: ", err)
-		return
+		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
 	authCookie, err := req.Cookie("auth")
 	if err != nil {
-		log.Fatal("クッキーの取得に失敗しました: ", err)
-		return
+		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
 	playerMap := objx.MustFromBase64(authCookie.Value)
@@ -119,4 +119,6 @@ func (r *room) SyncRoomHandler(w http.ResponseWriter, req *http.Request) {
 
 	go client.write()
 	client.read()
+
+	return nil
 }

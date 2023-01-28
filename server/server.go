@@ -2,12 +2,12 @@ package server
 
 import (
 	"flag"
-	"log"
 	"net/http"
 	"os"
 
 	"github.com/ShingoYadomoto/mahjong-score-board/player"
 	"github.com/ShingoYadomoto/mahjong-score-board/room"
+	"github.com/labstack/echo/v4"
 )
 
 var commonHeader = map[string]string{
@@ -15,20 +15,23 @@ var commonHeader = map[string]string{
 	"Access-Control-Allow-Origin":      os.Getenv("ALLOW_ORIGIN"),
 	"Access-Control-Allow-Headers":     "Content-Type",
 	"Access-Control-Allow-Credentials": "true",
-	"Access-Control-Allow-Methods":     "GET,OPTIONS",
+	"Access-Control-Allow-Methods":     "GET,POST,OPTIONS",
 }
 
-func CORSMiddleware(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		for k, v := range commonHeader {
-			w.Header().Set(k, v)
-		}
+func CORSMiddleware() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			res := c.Response()
+			for k, v := range commonHeader {
+				res.Header().Set(k, v)
+			}
 
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
-			return
+			if c.Request().Method == http.MethodOptions {
+				res.WriteHeader(http.StatusOK)
+				return nil
+			}
+			return next(c)
 		}
-		next.ServeHTTP(w, r)
 	}
 }
 
@@ -36,15 +39,16 @@ func Serve() {
 	addr := flag.String("addr", ":8888", "アプリケーションのアドレス")
 	flag.Parse()
 
+	e := echo.New()
+
+	e.Use(CORSMiddleware())
+
 	r := room.NewRoom()
 	r.SetTracer(os.Stdout)
-	http.HandleFunc("/room", CORSMiddleware(r.SyncRoomHandler))
-	http.HandleFunc("/player", CORSMiddleware(player.CreateHandler))
+	e.GET("/room", r.SyncRoomHandler)
+	e.POST("/player", player.CreateHandler)
 
-	go r.Run() // start room room
+	go r.Run() // start room
 
-	// start web server
-	if err := http.ListenAndServe(*addr, nil); err != nil {
-		log.Fatal("ListenAndServe: ", err)
-	}
+	e.Logger.Fatal(e.Start(*addr))
 }

@@ -7,7 +7,9 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
+	"github.com/labstack/echo/v4"
 	"github.com/stretchr/objx"
 )
 
@@ -16,17 +18,26 @@ type Player struct {
 	Name string `json:"name"`
 }
 
-func CreateHandler(w http.ResponseWriter, r *http.Request) {
+func CreateHandler(c echo.Context) error {
+	req := c.Request()
+
+	_, err := req.Cookie("auth")
+	if err != nil && err != http.ErrNoCookie {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	if err == nil {
+		return c.NoContent(http.StatusOK)
+	}
+
 	var p Player
-	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+	if err := json.NewDecoder(req.Body).Decode(&p); err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
 	m := md5.New()
 	if _, err := io.WriteString(m, strings.ToLower(p.Name)); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
 	p.ID = fmt.Sprintf("%x", m.Sum(nil))
@@ -36,11 +47,15 @@ func CreateHandler(w http.ResponseWriter, r *http.Request) {
 		"name":   p.Name,
 	}).MustBase64()
 
-	http.SetCookie(w, &http.Cookie{
-		Name:  "auth",
-		Value: authCookieValue,
-		Path:  "/",
+	c.SetCookie(&http.Cookie{
+		Name:     "auth",
+		Value:    authCookieValue,
+		Path:     "/",
+		SameSite: http.SameSiteNoneMode, // only dev
+		Expires:  time.Now().Add(time.Hour * 72),
+		Secure:   true,
+		HttpOnly: true,
 	})
-	w.Header()["Location"] = []string{"/chat"}
-	w.WriteHeader(http.StatusTemporaryRedirect)
+
+	return c.NoContent(http.StatusOK)
 }
