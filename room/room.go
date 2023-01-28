@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/ShingoYadomoto/mahjong-score-board/message"
+	"github.com/ShingoYadomoto/mahjong-score-board/player"
 	"github.com/stretchr/objx"
 
 	"github.com/ShingoYadomoto/mahjong-score-board/trace"
@@ -90,7 +91,7 @@ var upgrader = &websocket.Upgrader{
 	CheckOrigin:     checkOrigin,
 }
 
-func (r *room) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+func (r *room) SyncRoomHandler(w http.ResponseWriter, req *http.Request) {
 	socket, err := upgrader.Upgrade(w, req, nil)
 	if err != nil {
 		log.Fatal("ServeHTTP: ", err)
@@ -103,7 +104,13 @@ func (r *room) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	client := newClient(socket, r, objx.MustFromBase64(authCookie.Value))
+	playerMap := objx.MustFromBase64(authCookie.Value)
+	p := &player.Player{
+		ID:   playerMap["userid"].(string),
+		Name: playerMap["name"].(string),
+	}
+
+	client := newClient(socket, r, p)
 
 	r.join <- client
 	defer func() {

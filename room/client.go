@@ -4,22 +4,23 @@ import (
 	"time"
 
 	"github.com/ShingoYadomoto/mahjong-score-board/message"
+	"github.com/ShingoYadomoto/mahjong-score-board/player"
 	"github.com/gorilla/websocket"
 )
 
 type client struct {
-	socket   *websocket.Conn
-	send     chan *message.Message
-	room     *room
-	userData map[string]interface{}
+	socket *websocket.Conn
+	send   chan *message.Message
+	room   *room
+	player *player.Player
 }
 
-func newClient(socket *websocket.Conn, room *room, userDate map[string]interface{}) *client {
+func newClient(socket *websocket.Conn, room *room, player *player.Player) *client {
 	return &client{
-		socket:   socket,
-		send:     make(chan *message.Message, messageBufferSize),
-		room:     room,
-		userData: userDate,
+		socket: socket,
+		send:   make(chan *message.Message, messageBufferSize),
+		room:   room,
+		player: player,
 	}
 }
 
@@ -28,6 +29,7 @@ func (c *client) read() {
 		var msg *message.Message
 		if err := c.socket.ReadJSON(&msg); err == nil {
 			msg.When = time.Now()
+			msg.Name = c.player.Name
 
 			c.room.forward <- msg
 		} else {

@@ -5,7 +5,7 @@ import (
 )
 
 type Message struct {
-	//Name      string
+	Name    string
 	Message string
 	When    time.Time
 }
