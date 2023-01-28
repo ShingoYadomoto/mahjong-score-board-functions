@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/ShingoYadomoto/mahjong-score-board/player"
 	"github.com/ShingoYadomoto/mahjong-score-board/room"
 	"github.com/labstack/echo/v4"
 )
@@ -39,14 +38,22 @@ func Serve() {
 	addr := flag.String("addr", ":8888", "アプリケーションのアドレス")
 	flag.Parse()
 
-	e := echo.New()
+	var (
+		e  = echo.New()
+		h  = handler{}
+		rm = room.GetRoomManager()
+	)
+
+	r, err := rm.NewRoom()
+	if err != nil {
+		e.Logger.Fatal(err)
+	}
 
 	e.Use(CORSMiddleware())
 
-	r := room.NewRoom()
 	r.SetTracer(os.Stdout)
-	e.GET("/room", r.SyncRoomHandler)
-	e.POST("/player", player.CreateHandler)
+	e.GET("/room", h.RoomSocketHandler)
+	e.POST("/player", h.CreatePlayerHandler)
 
 	go r.Run() // start room
 

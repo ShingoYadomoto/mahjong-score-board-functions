@@ -8,6 +8,8 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+const MessageBufferSize = 256
+
 type client struct {
 	socket *websocket.Conn
 	send   chan *message.Message
@@ -15,16 +17,16 @@ type client struct {
 	player *player.Player
 }
 
-func newClient(socket *websocket.Conn, room *room, player *player.Player) *client {
+func NewClient(socket *websocket.Conn, room *room, player *player.Player) *client {
 	return &client{
 		socket: socket,
-		send:   make(chan *message.Message, messageBufferSize),
+		send:   make(chan *message.Message, MessageBufferSize),
 		room:   room,
 		player: player,
 	}
 }
 
-func (c *client) read() {
+func (c *client) Read() {
 	for {
 		var msg *message.Message
 		if err := c.socket.ReadJSON(&msg); err == nil {
@@ -40,7 +42,7 @@ func (c *client) read() {
 	c.socket.Close()
 }
 
-func (c *client) write() {
+func (c *client) Write() {
 	for msg := range c.send {
 		err := c.socket.WriteJSON(msg)
 		if err != nil {
