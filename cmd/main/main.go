@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/ShingoYadomoto/mahjong-score-board/chat"
+	"github.com/ShingoYadomoto/mahjong-score-board/server"
 )
 
 func main() {
-	chat.Serve()
+	server.Serve()
 }

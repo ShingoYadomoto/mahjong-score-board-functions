@@ -1,24 +1,24 @@
-package chat
+package room
 
 import (
 	"time"
 
+	"github.com/ShingoYadomoto/mahjong-score-board/message"
 	"github.com/gorilla/websocket"
 )
 
 type client struct {
-	socket   *websocket.Conn        // websocket for client
-	send     chan *message          // channel sent messages by others
-	room     *room                  // chat room client participate
-	userData map[string]interface{} // ユーザーに関する情報を保持
+	socket   *websocket.Conn
+	send     chan *message.Message
+	room     *room
+	userData map[string]interface{}
 }
 
 func (c *client) read() {
 	for {
-		var msg *message
+		var msg *message.Message
 		if err := c.socket.ReadJSON(&msg); err == nil {
 			msg.When = time.Now()
-			//msg.Name = c.userData["name"].(string)
 
 			c.room.forward <- msg
 		} else {

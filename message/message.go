@@ -1,10 +1,10 @@
-package chat
+package message
 
 import (
 	"time"
 )
 
-type message struct {
+type Message struct {
 	//Name      string
 	Message string
 	When    time.Time
