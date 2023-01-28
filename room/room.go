@@ -103,12 +103,7 @@ func (r *room) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	client := &client{
-		socket:   socket,
-		send:     make(chan *message.Message, messageBufferSize),
-		room:     r,
-		userData: objx.MustFromBase64(authCookie.Value),
-	}
+	client := newClient(socket, r, objx.MustFromBase64(authCookie.Value))
 
 	r.join <- client
 	defer func() {

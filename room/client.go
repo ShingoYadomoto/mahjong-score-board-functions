@@ -14,6 +14,15 @@ type client struct {
 	userData map[string]interface{}
 }
 
+func newClient(socket *websocket.Conn, room *room, userDate map[string]interface{}) *client {
+	return &client{
+		socket:   socket,
+		send:     make(chan *message.Message, messageBufferSize),
+		room:     room,
+		userData: userDate,
+	}
+}
+
 func (c *client) read() {
 	for {
 		var msg *message.Message
