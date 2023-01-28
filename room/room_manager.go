@@ -39,7 +39,7 @@ func (rm *roomManager) NewRoom() (*room, error) {
 
 	r := &room{
 		ID:      id,
-		forward: make(chan *message.Message),
+		Forward: make(chan *message.Message),
 		Join:    make(chan *client),
 		Leave:   make(chan *client),
 		clients: make(map[*client]bool),

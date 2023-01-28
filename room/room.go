@@ -9,7 +9,7 @@ import (
 
 type room struct {
 	ID      RoomID
-	forward chan *message.Message // channel for sending messages to others
+	Forward chan *message.Message // channel for sending messages to others
 	Join    chan *client          // channel for client joining room room
 	Leave   chan *client          // channel for client leaving from room room
 	clients map[*client]bool
@@ -31,7 +31,7 @@ func (r *room) leaveClient(c *client) {
 	r.tracer.Trace("クライアントが退室しました")
 }
 
-func (r *room) sendToClient(msg *message.Message) {
+func (r *room) SendToClient(msg *message.Message) {
 	r.tracer.Trace("メッセージを送信しました: ", msg.Message)
 	// send messages to all client
 	for client := range r.clients {
@@ -55,8 +55,8 @@ func (r *room) Run() {
 			r.joinClient(client)
 		case client := <-r.Leave:
 			r.leaveClient(client)
-		case msg := <-r.forward:
-			r.sendToClient(msg)
+		case msg := <-r.Forward:
+			r.SendToClient(msg)
 		}
 	}
 }

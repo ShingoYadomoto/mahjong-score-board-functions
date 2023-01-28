@@ -38,7 +38,7 @@ func (c *client) Read() {
 			msg.When = time.Now()
 			msg.Name = c.player.Name
 
-			c.room.forward <- msg
+			c.room.Forward <- msg
 		} else {
 			break
 		}

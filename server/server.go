@@ -40,6 +40,8 @@ func Serve() {
 	e.POST("/room/leave", h.LeaveRoomHandler)
 	e.GET("/room", h.RoomSocketHandler)
 
+	e.POST("/room/next", h.NextHandler)
+
 	go r.Run() // start room
 
 	e.Logger.Fatal(e.Start(*addr))

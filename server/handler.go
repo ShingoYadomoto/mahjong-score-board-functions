@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ShingoYadomoto/mahjong-score-board/message"
 	"github.com/ShingoYadomoto/mahjong-score-board/room"
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
@@ -212,6 +213,28 @@ func (h *handler) CheckInRoomHandler(c echo.Context) error {
 	if !h.joinedRoom(playerMap) {
 		return c.NoContent(http.StatusBadRequest)
 	}
+
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *handler) NextHandler(c echo.Context) error {
+	var (
+		req       = c.Request()
+		playerMap = h.getPlayerMap(req)
+		rm        = room.GetRoomManager()
+	)
+
+	if !h.joinedRoom(playerMap) {
+		return c.NoContent(http.StatusBadRequest)
+	}
+
+	r := rm.GetRoom(room.RoomID(playerMap["room_id"].(float64)))
+
+	r.SendToClient(&message.Message{
+		Name:    playerMap["name"].(string),
+		Message: "NEXT",
+		When:    time.Now(),
+	})
 
 	return c.NoContent(http.StatusOK)
 }
