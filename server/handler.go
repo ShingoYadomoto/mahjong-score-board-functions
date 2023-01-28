@@ -70,6 +70,22 @@ func (h *handler) RoomSocketHandler(c echo.Context) error {
 	return nil
 }
 
+func (h *handler) responseWithCookie(c echo.Context, d map[string]interface{}) error {
+	authCookieValue := objx.New(d).MustBase64()
+
+	c.SetCookie(&http.Cookie{
+		Name:     "auth",
+		Value:    authCookieValue,
+		Path:     "/",
+		SameSite: http.SameSiteNoneMode, // only dev
+		Expires:  time.Now().Add(time.Hour * 72),
+		Secure:   true,
+		HttpOnly: true,
+	})
+
+	return c.NoContent(http.StatusOK)
+}
+
 func (h *handler) CreatePlayerHandler(c echo.Context) error {
 	req := c.Request()
 
@@ -85,22 +101,10 @@ func (h *handler) CreatePlayerHandler(c echo.Context) error {
 
 	p.ID = fmt.Sprintf("%x", m.Sum(nil))
 
-	authCookieValue := objx.New(map[string]interface{}{
+	return h.responseWithCookie(c, map[string]interface{}{
 		"user_id": p.ID,
 		"name":    p.Name,
-	}).MustBase64()
-
-	c.SetCookie(&http.Cookie{
-		Name:     "auth",
-		Value:    authCookieValue,
-		Path:     "/",
-		SameSite: http.SameSiteNoneMode, // only dev
-		Expires:  time.Now().Add(time.Hour * 72),
-		Secure:   true,
-		HttpOnly: true,
 	})
-
-	return c.NoContent(http.StatusOK)
 }
 
 func (h *handler) CreateRoomHandler(c echo.Context) error {
@@ -126,23 +130,11 @@ func (h *handler) CreateRoomHandler(c echo.Context) error {
 	//}
 	r := rm.GetRoom(3)
 
-	authCookieValue := objx.New(map[string]interface{}{
+	return h.responseWithCookie(c, map[string]interface{}{
 		"user_id": playerMap["user_id"],
 		"name":    playerMap["name"],
 		"room_id": r.ID,
-	}).MustBase64()
-
-	c.SetCookie(&http.Cookie{
-		Name:     "auth",
-		Value:    authCookieValue,
-		Path:     "/",
-		SameSite: http.SameSiteNoneMode, // only dev
-		Expires:  time.Now().Add(time.Hour * 72),
-		Secure:   true,
-		HttpOnly: true,
 	})
-
-	return c.NoContent(http.StatusOK)
 }
 
 func (h *handler) JoinRoomHandler(c echo.Context) error {
@@ -168,23 +160,11 @@ func (h *handler) JoinRoomHandler(c echo.Context) error {
 		return c.NoContent(http.StatusBadRequest)
 	}
 
-	authCookieValue := objx.New(map[string]interface{}{
+	return h.responseWithCookie(c, map[string]interface{}{
 		"user_id": playerMap["user_id"],
 		"name":    playerMap["name"],
 		"room_id": r.ID,
-	}).MustBase64()
-
-	c.SetCookie(&http.Cookie{
-		Name:     "auth",
-		Value:    authCookieValue,
-		Path:     "/",
-		SameSite: http.SameSiteNoneMode, // only dev
-		Expires:  time.Now().Add(time.Hour * 72),
-		Secure:   true,
-		HttpOnly: true,
 	})
-
-	return c.NoContent(http.StatusOK)
 }
 
 func (h *handler) LeaveRoomHandler(c echo.Context) error {
@@ -197,22 +177,10 @@ func (h *handler) LeaveRoomHandler(c echo.Context) error {
 
 	playerMap := objx.MustFromBase64(authCookie.Value)
 
-	authCookieValue := objx.New(map[string]interface{}{
+	return h.responseWithCookie(c, map[string]interface{}{
 		"user_id": playerMap["user_id"],
 		"name":    playerMap["name"],
-	}).MustBase64()
-
-	c.SetCookie(&http.Cookie{
-		Name:     "auth",
-		Value:    authCookieValue,
-		Path:     "/",
-		SameSite: http.SameSiteNoneMode, // only dev
-		Expires:  time.Now().Add(time.Hour * 72),
-		Secure:   true,
-		HttpOnly: true,
 	})
-
-	return c.NoContent(http.StatusOK)
 }
 
 func (h *handler) CheckInRoomHandler(c echo.Context) error {
