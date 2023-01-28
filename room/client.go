@@ -4,20 +4,25 @@ import (
 	"time"
 
 	"github.com/ShingoYadomoto/mahjong-score-board/message"
-	"github.com/ShingoYadomoto/mahjong-score-board/player"
 	"github.com/gorilla/websocket"
 )
 
 const MessageBufferSize = 256
 
+type Player struct {
+	ID     string
+	Name   string `json:"name"`
+	RoomID RoomID
+}
+
 type client struct {
 	socket *websocket.Conn
 	send   chan *message.Message
 	room   *room
-	player *player.Player
+	player *Player
 }
 
-func NewClient(socket *websocket.Conn, room *room, player *player.Player) *client {
+func NewClient(socket *websocket.Conn, room *room, player *Player) *client {
 	return &client{
 		socket: socket,
 		send:   make(chan *message.Message, MessageBufferSize),

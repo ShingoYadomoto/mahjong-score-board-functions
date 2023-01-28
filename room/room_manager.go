@@ -13,14 +13,14 @@ func init() {
 
 const maxRoomNum = 10
 
-type roomID int
+type RoomID int
 
 type roomManager struct {
-	room map[roomID]*room
+	room map[RoomID]*room
 }
 
 func newRoomManager() *roomManager {
-	return &roomManager{room: map[roomID]*room{}}
+	return &roomManager{room: map[RoomID]*room{}}
 }
 
 func (rm *roomManager) NewRoom() (*room, error) {
@@ -28,15 +28,17 @@ func (rm *roomManager) NewRoom() (*room, error) {
 		return nil, errors.New("exceed max room num")
 	}
 
-	var id roomID
-	for {
-		if _, exist := rm.room[id]; !exist {
-			break
-		}
-		id++
-	}
+	var id RoomID
+	//for {
+	//	if _, exist := rm.room[id]; !exist {
+	//		break
+	//	}
+	//	id++
+	//}
+	id = 3
 
 	r := &room{
+		ID:      id,
 		forward: make(chan *message.Message),
 		Join:    make(chan *client),
 		Leave:   make(chan *client),
@@ -49,13 +51,8 @@ func (rm *roomManager) NewRoom() (*room, error) {
 	return r, nil
 }
 
-// ToDo
-func (rm *roomManager) GetRoom() *room {
-	for _, r := range rm.room {
-		return r
-	}
-
-	return nil
+func (rm *roomManager) GetRoom(id RoomID) *room {
+	return rm.room[id]
 }
 
 var singletonRoomManager *roomManager

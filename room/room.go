@@ -8,6 +8,7 @@ import (
 )
 
 type room struct {
+	ID      RoomID
 	forward chan *message.Message // channel for sending messages to others
 	Join    chan *client          // channel for client joining room room
 	Leave   chan *client          // channel for client leaving from room room

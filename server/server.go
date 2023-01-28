@@ -7,32 +7,8 @@ import (
 
 	"github.com/ShingoYadomoto/mahjong-score-board/room"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
-
-var commonHeader = map[string]string{
-	"Content-Type":                     "application/json",
-	"Access-Control-Allow-Origin":      os.Getenv("ALLOW_ORIGIN"),
-	"Access-Control-Allow-Headers":     "Content-Type",
-	"Access-Control-Allow-Credentials": "true",
-	"Access-Control-Allow-Methods":     "GET,POST,OPTIONS",
-}
-
-func CORSMiddleware() echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			res := c.Response()
-			for k, v := range commonHeader {
-				res.Header().Set(k, v)
-			}
-
-			if c.Request().Method == http.MethodOptions {
-				res.WriteHeader(http.StatusOK)
-				return nil
-			}
-			return next(c)
-		}
-	}
-}
 
 func Serve() {
 	addr := flag.String("addr", ":8888", "アプリケーションのアドレス")
@@ -49,11 +25,19 @@ func Serve() {
 		e.Logger.Fatal(err)
 	}
 
-	e.Use(CORSMiddleware())
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins:     []string{os.Getenv("ALLOW_ORIGIN")},
+		AllowMethods:     []string{http.MethodGet, http.MethodHead, http.MethodPut, http.MethodPatch, http.MethodPost, http.MethodDelete},
+		AllowCredentials: true,
+	}))
 
 	r.SetTracer(os.Stdout)
-	e.GET("/room", h.RoomSocketHandler)
+
 	e.POST("/player", h.CreatePlayerHandler)
+	e.POST("/room", h.CreateRoomHandler)
+	e.POST("/room/:roomID", h.JoinRoomHandler)
+	e.GET("/room/in", h.CheckInRoomHandler)
+	e.GET("/room", h.RoomSocketHandler)
 
 	go r.Run() // start room
 
