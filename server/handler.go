@@ -60,20 +60,38 @@ func (h *handler) CreatePlayerHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{"playerID": fmt.Sprint(p.ID)})
 }
 
-func (h *handler) CreateRoomHandler(c echo.Context) error {
+func (h *handler) GetPlayerHandler(c echo.Context) error {
 	p, err := h.getPlayer(c)
 	if err != nil {
+		if err == data.ErrNotFound {
+			return c.NoContent(http.StatusNotFound)
+		}
+
 		log.Error(err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
+	h.setCookie(c, p)
+
+	return c.JSON(http.StatusOK, map[string]string{"playerID": fmt.Sprint(p.ID)})
+}
+
+func (h *handler) CreateRoomHandler(c echo.Context) error {
+	p, err := h.getPlayer(c)
+	if err != nil {
+		if err == data.ErrNotFound {
+			return c.NoContent(http.StatusNotFound)
+		}
+
+		log.Error(err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
+	h.setCookie(c, p)
 
 	r, err := data.CreateRoom(p.ID)
 	if err != nil {
 		log.Error(err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
-
-	h.setCookie(c, p)
 
 	return c.JSON(http.StatusOK, map[string]string{"roomID": fmt.Sprint(r.ID)})
 }
@@ -87,17 +105,20 @@ func (h *handler) JoinRoomHandler(c echo.Context) error {
 
 	p, err := h.getPlayer(c)
 	if err != nil {
+		if err == data.ErrNotFound {
+			return c.NoContent(http.StatusNotFound)
+		}
+
 		log.Error(err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
+	h.setCookie(c, p)
 
 	err = data.AddPlayerToRoom(room.ID(roomIDInt), p.ID)
 	if err != nil {
 		log.Error(err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
-
-	h.setCookie(c, p)
 
 	return c.NoContent(http.StatusOK)
 }
@@ -111,9 +132,14 @@ func (h *handler) LeaveRoomHandler(c echo.Context) error {
 
 	p, err := h.getPlayer(c)
 	if err != nil {
+		if err == data.ErrNotFound {
+			return c.NoContent(http.StatusNotFound)
+		}
+
 		log.Error(err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
+	h.setCookie(c, p)
 
 	err = data.DeletePlayerFromRoom(room.ID(roomIDInt), p.ID)
 	if err != nil {
@@ -121,28 +147,28 @@ func (h *handler) LeaveRoomHandler(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	h.setCookie(c, p)
-
 	return c.NoContent(http.StatusOK)
 }
 
 func (h *handler) GetRoomHandler(c echo.Context) error {
 	p, err := h.getPlayer(c)
 	if err != nil {
+		if err == data.ErrNotFound {
+			return c.NoContent(http.StatusNotFound)
+		}
+
 		log.Error(err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
+	h.setCookie(c, p)
 
 	r, err := data.GetJoinedRoom(p.ID)
 	if err != nil {
+		if err == data.ErrNotFound {
+			return c.NoContent(http.StatusNotFound)
+		}
 		log.Error(err)
 		return c.NoContent(http.StatusInternalServerError)
-	}
-
-	h.setCookie(c, p)
-
-	if err == data.ErrNotFound {
-		return c.NoContent(http.StatusNotFound)
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{"roomID": fmt.Sprint(r.ID)})

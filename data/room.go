@@ -8,13 +8,14 @@ import (
 
 var globalr *room.Room
 
-var ErrNotFound = errors.New("data: ErrNotFound")
-
 func GetJoinedRoom(pid room.PlayerID) (*room.Room, error) {
-	if globalr.Joined(pid) {
-		return globalr, nil
+	if globalr == nil {
+		return nil, ErrNotFound
 	}
-	return nil, ErrNotFound
+	if !globalr.Joined(pid) {
+		return nil, ErrNotFound
+	}
+	return globalr, nil
 }
 
 func CreateRoom(pid room.PlayerID) (*room.Room, error) {

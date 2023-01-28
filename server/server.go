@@ -25,6 +25,7 @@ func Serve() {
 	}))
 
 	e.POST("/players", h.CreatePlayerHandler)
+	e.GET("/player", h.GetPlayerHandler)
 	e.POST("/rooms", h.CreateRoomHandler)
 	e.POST("/rooms/:roomID/in", h.JoinRoomHandler)
 	e.POST("/rooms/:roomID/out", h.LeaveRoomHandler)

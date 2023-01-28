@@ -7,6 +7,10 @@ import (
 var globalp *room.Player
 
 func GetPlayer(id room.PlayerID) (*room.Player, error) {
+	if globalp == nil {
+		return nil, ErrNotFound
+	}
+
 	return globalp, nil
 }
 
