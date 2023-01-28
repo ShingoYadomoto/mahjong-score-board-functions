@@ -168,8 +168,11 @@ func (h *handler) JoinRoomHandler(c echo.Context) error {
 		return c.NoContent(http.StatusBadRequest)
 	}
 
-	playerMap["room_id"] = r.ID
-	authCookieValue := objx.New(playerMap).MustBase64()
+	authCookieValue := objx.New(map[string]interface{}{
+		"user_id": playerMap["user_id"],
+		"name":    playerMap["name"],
+		"room_id": r.ID,
+	}).MustBase64()
 
 	c.SetCookie(&http.Cookie{
 		Name:     "auth",
@@ -194,9 +197,10 @@ func (h *handler) LeaveRoomHandler(c echo.Context) error {
 
 	playerMap := objx.MustFromBase64(authCookie.Value)
 
-	delete(playerMap, "room_id")
-
-	authCookieValue := objx.New(playerMap).MustBase64()
+	authCookieValue := objx.New(map[string]interface{}{
+		"user_id": playerMap["user_id"],
+		"name":    playerMap["name"],
+	}).MustBase64()
 
 	c.SetCookie(&http.Cookie{
 		Name:     "auth",
