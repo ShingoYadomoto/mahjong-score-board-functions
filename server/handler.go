@@ -150,6 +150,25 @@ func (h *handler) LeaveRoomHandler(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }
 
+type (
+	RoomResponseField struct {
+		Fan     room.FanType `json:"fan"`
+		Stack   int          `json:"stack"`
+		Deposit int          `json:"deposit"`
+	}
+	RoomResponsePlayer struct {
+		ID       room.PlayerID `json:"id"`
+		Fan      room.FanType  `json:"fan"`
+		Point    int           `json:"point"`
+		IsRiichi bool          `json:"isRiichi"`
+	}
+	RoomResponse struct {
+		RoomID  room.ID              `json:"roomID"`
+		Field   RoomResponseField    `json:"field"`
+		Players []RoomResponsePlayer `json:"players"`
+	}
+)
+
 func (h *handler) GetRoomHandler(c echo.Context) error {
 	p, err := h.getPlayer(c)
 	if err != nil {
@@ -171,5 +190,29 @@ func (h *handler) GetRoomHandler(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	return c.JSON(http.StatusOK, map[string]string{"roomID": fmt.Sprint(r.ID)})
+	current, err := r.CurrentState()
+	if err != nil {
+		log.Error(err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	players := make([]RoomResponsePlayer, len(current.Players))
+	for i, p := range current.Players {
+		players[i] = RoomResponsePlayer{
+			ID:       p.PlayerID,
+			Fan:      p.Fan,
+			Point:    p.Point,
+			IsRiichi: p.IsRiichi,
+		}
+	}
+
+	return c.JSON(http.StatusOK, RoomResponse{
+		RoomID: r.ID,
+		Field: RoomResponseField{
+			Fan:     current.Field.Fan,
+			Stack:   current.Field.Stack,
+			Deposit: current.Field.Deposit,
+		},
+		Players: players,
+	})
 }
