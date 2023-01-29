@@ -163,9 +163,10 @@ type (
 		IsRiichi bool          `json:"isRiichi"`
 	}
 	RoomResponse struct {
-		RoomID  room.ID              `json:"roomID"`
-		Field   RoomResponseField    `json:"field"`
-		Players []RoomResponsePlayer `json:"players"`
+		RoomID          room.ID              `json:"roomID"`
+		Field           RoomResponseField    `json:"field"`
+		Players         []RoomResponsePlayer `json:"players"`
+		UpdatedUnixTime int64                `json:"updatedUnixTime"`
 	}
 )
 

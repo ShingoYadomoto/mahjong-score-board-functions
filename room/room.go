@@ -4,6 +4,7 @@ type ID int
 
 type Room struct {
 	ID              ID
+	UpdatedUnixTime int64
 	PlayerIDs       map[PlayerID]struct{}
 	Kyokus          []Kyoku
 	RiichiPlayerIDs map[PlayerID]struct{}
